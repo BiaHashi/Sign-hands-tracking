@@ -15,18 +15,24 @@ mp_drawing = mp.solutions.drawing_utils
 cap = cv2.VideoCapture(0)
 
 tip_ids = [8,12,16,20]
-
 thumb_tip = 4
+thumb_base = 2
 
 while True:
     
     ret,img = cap.read()
 
+    if not ret:
+        print("Não foi possível capturar a imagem da câmera.")
+        break
+
     img = cv2.flip(img,1)
 
     h,w,c = img.shape # shape é propriedade
+
+    img_rgb = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
     
-    results = hands.process(img)
+    results = hands.process(img_rgb)
 
     if results.multi_hand_landmarks:
         
@@ -53,16 +59,23 @@ while True:
 
             print(finger_fold_status)
 
-            if all(finger_fold_status):
-                if lm_list[thumb_tip].y < lm_list[thumb_tip-1].y < lm_list[thumb_tip-2].y:
-                    print("Curti")
-                    cv2.putText(img,"Curti",(20,30),cv2.FONT_HERSHEY_COMPLEX,1,(255,0,85),3)
+            thumb_tip_y = lm_list[thumb_tip].y
+            thumb_base_y = lm_list[thumb_base].y
 
-                if lm_list[thumb_tip].y > lm_list[thumb_tip-1].y > lm_list[thumb_tip-2].y:
-                    print("Não curti")
-                    cv2.putText(img,"Não curti",(20,30),cv2.FONT_HERSHEY_COMPLEX,1,(255,0,85),3)
+            if thumb_tip_y < thumb_base_y:
+                print("Curti")
+                cv2.putText(img,"Curti",(20,30),cv2.FONT_HERSHEY_COMPLEX,1,(255,0,85),3)
+
+            elif thumb_tip_y > thumb_base_y:
+                print("Não curti")
+                cv2.putText(img,"Não curti",(20,30),cv2.FONT_HERSHEY_COMPLEX,1,(255,0,85),3)
 
             mp_drawing.draw_landmarks(img,hand_landmark,mp_hands.HAND_CONNECTIONS,mp_drawing.DrawingSpec((0,0,255),2,2),mp_drawing.DrawingSpec((0,255,0),4,2))
 
-cv2.imshow("Hands tracking",img)
-cv2.waitKey(1)
+    cv2.imshow("Hands tracking",img)
+
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
+cap.release()
+hands.close()
+cv2.destroyAllWindows()
